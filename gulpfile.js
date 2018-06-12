@@ -1,6 +1,8 @@
 var gulp = require('gulp');
 var del = require('del');
 var browserSync = require('browser-sync').create();
+//TODO: may need prefixes for flexbox
+//var autoprefixer = require('gulp-autoprefixer');
 var swPrecache = require('sw-precache');
 
 gulp.task('generate-sw', function() {
@@ -20,16 +22,16 @@ gulp.task('serve', ['generate-sw'], function() {
   browserSync.init({
     notify: false,
     logPrefix: 'restaurantApp',
-    server: ['.'],
+    server: './',
     port: 8000
   });
   gulp.watch([
-    './*.html',
-    './js/*.js',
-    './css/*.css',
-    '!./service-worker.js',
-    '!./gulpfile.js'
-  ], ['generate-sw'], browserSync.reload);
+    '*.html',
+    'js/*.js',
+    'css/*.css',
+    '!service-worker.js',
+    '!gulpfile.js'
+  ], ['generate-sw', browserSync.reload]);
 });
 
 gulp.task('default', ['serve']);
