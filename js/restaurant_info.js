@@ -87,8 +87,14 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   address.innerHTML = restaurant.address;
 
   const image = document.getElementById('restaurant-img');
-  image.className = 'restaurant-img'
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.className = 'restaurant-img';
+  // image srcset based on Doug Brown example 
+  const imageURL = DBHelper.imageUrlForRestaurant(restaurant, 'banners');
+  const imageURL1x = imageURL.replace('.jpg', '_1x.jpg');
+  const imageURL2x = imageURL.replace('.jpg', '_2x.jpg');
+  image.src = imageURL1x;
+  image.srcset = `${imageURL1x} 400w, ${imageURL2x} 900w`;
+  image.alt = `${restaurant.name} promotional image`;
 
   const cuisine = document.getElementById('restaurant-cuisine');
   cuisine.innerHTML = restaurant.cuisine_type;

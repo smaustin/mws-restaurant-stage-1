@@ -156,9 +156,17 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
 createRestaurantHTML = (restaurant) => {
   const li = document.createElement('li');
 
+  // TODO: Use picture tag with nested source and img fallback tags
+  // <picture><source media= scrset= /><img alt= /><picture>
   const image = document.createElement('img');
   image.className = 'restaurant-img';
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  // image srcset based on Doug Brown example 
+  const imageURL = DBHelper.imageUrlForRestaurant(restaurant, 'thumbs');
+  const imageURL1x = imageURL.replace('.jpg', '_1x.jpg');
+  const imageURL2x = imageURL.replace('.jpg', '_2x.jpg');
+  image.src = imageURL1x;
+  image.srcset = `${imageURL1x} 375w, ${imageURL2x} 750w`;
+  image.alt = `${restaurant.name} promotional image`;
   li.append(image);
 
   const div = document.createElement('div');
