@@ -101,7 +101,20 @@ nav h1 a {
 #map {
   height: 400px;
   width: 100%;
+  position: relative;
   background-color: #ccc;
+}
+#map .skip-map-link {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background-color: orange;
+  color: white;
+  padding: 8px;
+  z-index: 1000 ;
+}
+#map .skip-map-link:focus {
+  top: 0;
 }
 /* ====================== Restaurant Filtering ====================== */
 .filter-options {
@@ -162,7 +175,7 @@ nav h1 a {
   justify-content: space-between;
   padding: 0 10px;
 }
-#restaurants-list li h1 {
+#restaurants-list li h2 {
   color: #f18200;
   font-size: 1rem;
   font-weight: 200;
@@ -195,9 +208,7 @@ nav h1 a {
   height: 300px;
 }
 .inside #map {
-  background-color: #ccc;
   height: 100%;
-  width: 100%;
 }
 
 #restaurant-name {

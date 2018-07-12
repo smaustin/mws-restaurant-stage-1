@@ -22,7 +22,7 @@ initMap = () => {
         scrollWheelZoom: false
       });
       L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.jpg70?access_token={mapboxToken}', {
-        mapboxToken: '<your MAPBOX API KEY HERE>',
+        mapboxToken: 'pk.eyJ1Ijoic21hdXN0aW4iLCJhIjoiY2ppYzB0aml3MDg2NjNxcjNqbnAwOGdlMCJ9.zPZU77ZFPv5E1fC6ows37g',
         maxZoom: 18,
         attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
           '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
@@ -87,8 +87,14 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
   address.innerHTML = restaurant.address;
 
   const image = document.getElementById('restaurant-img');
-  image.className = 'restaurant-img'
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  image.className = 'restaurant-img';
+  // image srcset based on Doug Brown example 
+  const imageURL = DBHelper.imageUrlForRestaurant(restaurant, 'banners');
+  const imageURL1x = imageURL.replace('.jpg', '_1x.jpg');
+  const imageURL2x = imageURL.replace('.jpg', '_2x.jpg');
+  image.src = imageURL1x;
+  image.srcset = `${imageURL1x} 400w, ${imageURL2x} 900w`;
+  image.alt = `${restaurant.name} promotional image`;
 
   const cuisine = document.getElementById('restaurant-cuisine');
   cuisine.innerHTML = restaurant.cuisine_type;
@@ -173,7 +179,12 @@ createReviewHTML = (review) => {
 fillBreadcrumb = (restaurant=self.restaurant) => {
   const breadcrumb = document.getElementById('breadcrumb');
   const li = document.createElement('li');
-  li.innerHTML = restaurant.name;
+  const a = document.createElement('a');
+  a.setAttribute('aria-current', 'page');
+  a.href = DBHelper.urlForRestaurant(restaurant);
+  a.innerHTML = restaurant.name;
+  li.append(a);
+
   breadcrumb.appendChild(li);
 }
 

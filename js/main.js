@@ -156,15 +156,23 @@ fillRestaurantsHTML = (restaurants = self.restaurants) => {
 createRestaurantHTML = (restaurant) => {
   const li = document.createElement('li');
 
+  // TODO: Use picture tag with nested source and img fallback tags
+  // <picture><source media= scrset= /><img alt= /><picture>
   const image = document.createElement('img');
   image.className = 'restaurant-img';
-  image.src = DBHelper.imageUrlForRestaurant(restaurant);
+  // image srcset based on Doug Brown example 
+  const imageURL = DBHelper.imageUrlForRestaurant(restaurant, 'thumbs');
+  const imageURL1x = imageURL.replace('.jpg', '_1x.jpg');
+  const imageURL2x = imageURL.replace('.jpg', '_2x.jpg');
+  image.src = imageURL1x;
+  image.srcset = `${imageURL1x} 375w, ${imageURL2x} 750w`;
+  image.alt = `${restaurant.name} promotional image`;
   li.append(image);
 
   const div = document.createElement('div');
   div.className = 'restaurant-text';
 
-  const name = document.createElement('h1');
+  const name = document.createElement('h2');
   name.innerHTML = restaurant.name;
   div.append(name);
 
@@ -179,6 +187,8 @@ createRestaurantHTML = (restaurant) => {
   const more = document.createElement('a');
   more.innerHTML = 'View Details';
   more.href = DBHelper.urlForRestaurant(restaurant);
+  more.setAttribute('aria-label', `${more.innerHTML} ${restaurant.name}`);
+  more.setAttribute('role', 'button');
   div.append(more);
 
   li.append(div);

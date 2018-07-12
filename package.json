@@ -8,12 +8,16 @@
     "name": "Shane Austin",
     "email": "shane.m.austin@gmail.com"
   },
-  "dependencies": {},
+  "dependencies": {
+    "gulp-load-plugins": "^1.5.0"
+  },
   "devDependencies": {
     "browser-sync": "^2.24.4",
     "del": "^3.0.0",
     "gulp": "^3.9.1",
     "gulp-autoprefixer": "^5.0.0",
-    "sw-precache": "^5.2.1"
+    "gulp-responsive-images": "^0.0.3"
+    // ,
+    // "sw-precache": "^5.2.1"
   }
 }
