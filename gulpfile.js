@@ -9,26 +9,27 @@ var del = require('del');
 var browserSync = require('browser-sync').create();
 //TODO: may need prefixes for flexbox
 //var autoprefixer = require('gulp-autoprefixer');
-var swPrecache = require('sw-precache');
+// TODO: may want to use sw-precache in future
+// var swPrecache = require('sw-precache');
 
-gulp.task('generate-sw', function() {
-  var swOptions = {
-    staticFileGlobs: [
-      './index.html',
-      './img/*.*/*.{png,svg,gif,jpg}',
-      './js/*.js',
-      './css/*.css'
-    ],
-    stripPrefix: '.'
-  };
-  return swPrecache.write('./service-worker.js', swOptions);
-});
+// gulp.task('generate-sw', function() {
+//   var swOptions = {
+//     staticFileGlobs: [
+//       './index.html',
+//       './img/*.*/*.{png,svg,gif,jpg}',
+//       './js/*.js',
+//       './css/*.css'
+//     ],
+//     stripPrefix: '.'
+//   };
+//   return swPrecache.write('./service-worker.js', swOptions);
+// });
 
 gulp.task('images', function() {
   // create thumbs
   gulp.src('img/*.jpg')
     .pipe(responsive({
-      '*.jpg': [{
+      '!empty-plate.jpg': [{
         width: 375,
         suffix: '_1x',
         quality: 60
@@ -42,7 +43,7 @@ gulp.task('images', function() {
   // create banners
   gulp.src('img/*.jpg')  
     .pipe(responsive({
-      '*.jpg': [{
+      '!empty-plate.jpg': [{
         // height: 400,
         // crop: true,
         // gravity: 'Center',
@@ -61,7 +62,7 @@ gulp.task('images', function() {
     .pipe(gulp.dest('img/banners'));
 });
 
-gulp.task('serve', ['generate-sw'], function() {
+gulp.task('serve', function() {
   browserSync.init({
     notify: false,
     logPrefix: 'restaurantApp',
@@ -75,7 +76,7 @@ gulp.task('serve', ['generate-sw'], function() {
     'img/*.*/*.jpg',
     '!service-worker.js',
     '!gulpfile.js'
-  ], ['generate-sw', browserSync.reload]);
+  ], [browserSync.reload]);
 });
 
 gulp.task('default', ['serve']);
