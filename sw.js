@@ -1,4 +1,4 @@
-var STATIC_CACHE = 'app-static-v3';
+var STATIC_CACHE = 'app-static-v6';
 var IMG_CACHE = 'app-content-imgs'; //TODO
 var ALL_CACHES = [
 	STATIC_CACHE,
@@ -13,7 +13,7 @@ self.addEventListener('install', event => {
 				"/index.html",
 				"/restaurant.html",
 				"/css/styles.css",
-				"/data/restaurants.json",
+				//"/data/restaurants.json",
 				"/img/empty-plate.jpg",
 				"/js/dbhelper.js",
 				"/js/main.js",
@@ -42,11 +42,15 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
 	event.respondWith(
-		caches.match(event.request, {ignoreSearch: true}).then(response => {
-			return response || fetch(event.request).then(fetchResponse => {
-				return caches.open(STATIC_CACHE).then(cache => {
-					cache.put(event.request, fetchResponse.clone());
-					return fetchResponse;
+		caches.match(event.request, {ignoreSearch: true})
+		.then(response => {
+			return response || fetch(event.request)
+				.then(handleFetchErrors)
+				.then(fetchResponse => {
+					return caches.open(STATIC_CACHE)
+				.then(cache => {
+					cache.put(event.request, fetchResponse);
+					return fetchResponse.clone();
 				})
 			})
 			// error handler borrowed from Doug Brown presentation
@@ -62,3 +66,10 @@ self.addEventListener('fetch', event => {
 		})
 	);
 });
+
+function handleFetchErrors(fetchResponse) {
+	if(!fetchResponse.ok) {
+		console.log(fetchResponse.statusText);
+	}
+	return fetchResponse;
+}
