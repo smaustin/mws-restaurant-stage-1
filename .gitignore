@@ -1,0 +1,5 @@
+# project specific files and dirs
+dist
+
+# dependency directories
+node_modules/
