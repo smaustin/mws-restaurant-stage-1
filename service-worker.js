@@ -1,29 +1,22 @@
-import idb from 'idb';
-
 // TODO: append hash version number to STATIC_CACHE and static files to cache
-
-const STATIC_CACHE = 'app-static-v1';
+const STATIC_CACHE = 'app-static-v6';
 const DYNAMIC_CACHE = 'app-dynamic';
 const ALL_CACHES = [
 	STATIC_CACHE,
 	DYNAMIC_CACHE
 ];
 
-const dbPromise = idb.open('keyval-store', 1, updateDB => {
-	updateDB.createObjectStore('keyval');
-});
-
 // On Service Worker install cache static assets
 self.addEventListener('install', event => {
 	event.waitUntil(
 		caches.open(STATIC_CACHE).then( cache => {
 			return cache.addAll([
-				'/',
 				'/index.html',
 				'/restaurant.html',
 				'/css/styles.css',
 				'/img/empty-plate.jpg',
 				'/js/dbhelper.js',
+				'/js/idb.js',
 				'/js/main.js',
 				'/js/register.js',
 				'/js/restaurant_info.js'
@@ -61,10 +54,10 @@ self.addEventListener('fetch', event => {
 			event.respondWith(caches.match('restaurant.html'));
 			return;
 		}
-		/*if (requestURL.port === '1337') {
-			// Don't handle API calls
+		// Intercept fetch API calls for restaurant data  
+		if (requestURL.port === '1337') {
 			return;
-		}*/
+		}
 	}
 
 	event.respondWith(
@@ -74,21 +67,21 @@ self.addEventListener('fetch', event => {
 				.then(handleFetchErrors)
 				.then(fetchResponse => {
 					return caches.open(DYNAMIC_CACHE)
-				.then(cache => {
-					cache.put(event.request, fetchResponse);
-					return fetchResponse.clone();
+						.then(cache => {
+							cache.put(event.request, fetchResponse);
+							return fetchResponse.clone();
+						})
 				})
-			})
-			// error handler borrowed from Doug Brown presentation
-			.catch(error => {
-				if(event.request.url.indexOf('.jpg') > -1) {
-					return caches.match('/img/empty-plate.jpg');
-				}
-				return new Response('Internet connection failed', {
-					status: 404,
-					statusText: 'Internet connection failed'
+				// error handler borrowed from Doug Brown presentation
+				.catch(error => {
+					if(event.request.url.indexOf('.jpg') > -1) {
+						return caches.match('/img/empty-plate.jpg');
+					}
+					return new Response('Internet connection failed', {
+						status: 404,
+						statusText: 'Internet connection failed'
+					});
 				});
-			});
 		})
 	);
 });
