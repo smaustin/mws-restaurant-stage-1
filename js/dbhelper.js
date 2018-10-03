@@ -1,11 +1,42 @@
 /**
  * Common database helper functions.
  */
+
+const DATABASE_NAME = 'restarauntsDB';
+const RESTAURANT_STORE = 'restaurants';
+
+const handleFetchErrors = (fetchResponse) => {
+  if(!fetchResponse.ok) {
+    console.log(fetchResponse.statusText);
+  }
+  return fetchResponse;
+};
+
+const getAllRestaurants = () => {
+  return fetch(DBHelper.DATABASE_URL)
+    .then(handleFetchErrors)
+    .then(response => response.json())
+    .then(arrayOfRestuarants => {
+      return arrayOfRestuarants;
+    }).catch( error => {
+      console.log(error);
+    });
+}
+
 class DBHelper {
+  /**
+   * Database name and store
+   */
+  static get DATABASE_NAME() {
+    return DATABASE_NAME;
+  }
+
+  static get RESTAURANT_STORE() {
+    return RESTAURANT_STORE;
+  }
 
   /**
-   * Database URL.
-   * Change this to restaurants.json file location on your server.
+   * Remote Database URL.
    */
   static get DATABASE_URL() {
     const port = 1337 // Change this to your server port
@@ -13,28 +44,115 @@ class DBHelper {
   }
 
   /**
+   * Open Browser Database
+   * Create all indexedDB stores
+   */
+  static openDatabase() {
+    // If service worker is not supported don't use database
+    if (!navigator.serviceWorker) {
+      return Promise.resolve();
+    }
+    return idb.open(DBHelper.DATABASE_NAME, 1, updateDB => {
+      switch(updateDB.oldVersion) {
+        case 0:
+          updateDB.createObjectStore(DBHelper.RESTAURANT_STORE, { 
+            keyPath: 'id' 
+          });
+      }
+    });
+  }
+
+  /**
+   * Retrieve all restaurants from cache
+   */
+  static getCachedRestaurants() {
+    return DBHelper.openDatabase().then(db => {
+      if (!db) return;
+      const restaurants = db.transaction(DBHelper.RESTAURANT_STORE)
+        .objectStore(DBHelper.RESTAURANT_STORE);
+      return restaurants.getAll();
+    });
+  }
+
+  /**
    * Fetch all restaurants.
    */
-  static fetchRestaurants(callback) {
-    // let xhr = new XMLHttpRequest();
-    // xhr.open('GET', DBHelper.DATABASE_URL);
-    // xhr.onload = () => {
-    //   if (xhr.status === 200) { // Got a success response from server!
-    //     const json = JSON.parse(xhr.responseText);
-    //     const restaurants = json.restaurants;
-    //     callback(null, restaurants);
-    //   } else { // Oops!. Got an error from server.
-    //     const error = (`Request failed. Returned status of ${xhr.status}`);
-    //     callback(error, null);
-    //   }
-    // };
-    // xhr.send();
-    
+  static fetchRestaurants(callback) {    
     // TODO: Currently this request gets all restaurants. May need to account for single restaurant w/ ID
-    fetch(DBHelper.DATABASE_URL)
-      .then(response => response.json())
-      .then(data => callback(null, data))
-      .catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null))
+    // Get offline data first then remote and update database
+    
+    const restaurantData = DBHelper.getCachedRestaurants().then(restaurantsCache => {
+      return (restaurantsCache.length && restaurantsCache) || fetch(DBHelper.DATABASE_URL)
+        .then(handleFetchErrors)
+        .then(fetchResponse => fetchResponse.json())
+        .then(arrayOfRestuarants => {
+          return DBHelper.openDatabase().then(db => {
+            const tx = db.transaction(DBHelper.RESTAURANT_STORE, 'readwrite');
+            const store = tx.objectStore(DBHelper.RESTAURANT_STORE);
+            arrayOfRestuarants.forEach(restaurant => {
+              store.put(restaurant);
+            })
+            return arrayOfRestuarants;
+          });
+        }).catch(err => callback(`Remote Request failed. Returned status of ${err.statusText}`, null));
+    });
+
+    restaurantData.then(finalData => {
+      callback(null, finalData);
+    }).catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null));
+    // const cachedData = DBHelper.getCachedRestaurants();
+    // if (cachedData) {
+    //   callback(null, cachedData);
+    //   console.log('Data from db');
+    // }
+    
+    // DBHelper.openDatabase().then(db => {
+    //   if (!db) return;
+    //   const restaurants = db.transaction(DBHelper.RESTAURANT_STORE)
+    //     .objectStore(DBHelper.RESTAURANT_STORE);
+    //   return restaurants.getAll().then(restaurantsCache => {
+    //     if (!restaurantsCache.length) return;
+    //     callback(null, restaurantsCache);
+    //     console.log('Data from db');
+    //   });
+    // });
+
+    // .then(data => callback(null, data)) //TODO need to handle fetch event here
+    // .catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null));
+
+    // const fetchData = getAllRestaurants();
+    // if (fetchData) console.log(fetchData);
+    
+    // fetch(DBHelper.DATABASE_URL)
+    //   .then(handleFetchErrors)
+    //   .then(response => response.json())
+    //   .then(arrayOfRestuarants => {
+    //     callback(null, arrayOfRestuarants);
+    //     DBHelper.openDatabase().then(db => {
+    //       const tx = db.transaction(DBHelper.RESTAURANT_STORE, 'readwrite');
+    //       const store = tx.objectStore(DBHelper.RESTAURANT_STORE);
+    //       arrayOfRestuarants.forEach(restaurant => {
+    //         store.put(restaurant);
+    //       })
+    //       return tx.complete;
+    //     });
+    //   }).catch( error => {
+    //     console.log(error);
+    //   })
+
+      //callback(null, fetchData);
+      // .then(jsonData => callback(null, jsonData.clone()))
+      // .then(DBHelper.openDatabase()
+      //   .then(db => {
+      //     const tx = db.transaction(DBHelper.RESTAURANT_STORE, 'readwrite');
+      //     const store = tx.objectStore(DBHelper.RESTAURANT_STORE);
+      //     jsonData.forEach(restaurant => {
+      //       store.put(restaurant);
+      //     })
+      //     return tx.complete;
+      //   })
+      // )
+      // .catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null));
   }
 
   /**
@@ -187,4 +305,3 @@ class DBHelper {
   } */
 
 }
-
