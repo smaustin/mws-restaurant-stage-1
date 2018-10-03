@@ -15,14 +15,15 @@
     "babel-core": "^6.26.3",
     "babel-preset-env": "^1.7.0",
     "babelify": "^8.0.0",
-    "browser-sync": "^2.24.4",
-    "browserify": "^16.2.2",
+    "browser-sync": "^2.24.7",
+    "browserify": "^16.2.3",
     "del": "^3.0.0",
-    "eslint": "^5.2.0",
+    "eslint": "^5.6.0",
     "gulp": "^3.9.1",
     "gulp-autoprefixer": "^5.0.0",
     "gulp-load-plugins": "^1.5.0",
     "gulp-responsive-images": "^0.0.3",
+    "run-sequence": "^2.2.1",
     "vinyl-source-stream": "^2.0.0"
   }
 }
