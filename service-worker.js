@@ -1,5 +1,5 @@
 // TODO: append hash version number to STATIC_CACHE and static files to cache
-const STATIC_CACHE = 'app-static-v9';
+const STATIC_CACHE = 'app-static-v10';
 const DYNAMIC_CACHE = 'app-dynamic';
 const ALL_CACHES = [
 	STATIC_CACHE,
@@ -13,6 +13,7 @@ self.addEventListener('install', event => {
 			return cache.addAll([
 				'/index.html',
 				'/restaurant.html',
+				'/manifest.json',
 				'/css/styles.css',
 				'/img/empty-plate.jpg',
 				'/js/dbhelper.js',
