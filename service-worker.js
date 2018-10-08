@@ -1,5 +1,5 @@
 // TODO: append hash version number to STATIC_CACHE and static files to cache
-const STATIC_CACHE = 'app-static-v6';
+const STATIC_CACHE = 'app-static-v9';
 const DYNAMIC_CACHE = 'app-dynamic';
 const ALL_CACHES = [
 	STATIC_CACHE,
@@ -68,8 +68,8 @@ self.addEventListener('fetch', event => {
 				.then(fetchResponse => {
 					return caches.open(DYNAMIC_CACHE)
 						.then(cache => {
-							cache.put(event.request, fetchResponse);
-							return fetchResponse.clone();
+							cache.put(event.request, fetchResponse.clone());
+							return fetchResponse;
 						})
 				})
 				// error handler borrowed from Doug Brown presentation
