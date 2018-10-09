@@ -1,5 +1,5 @@
 // TODO: append hash version number to STATIC_CACHE and static files to cache
-const STATIC_CACHE = 'app-static-v10';
+const STATIC_CACHE = 'app-static-v11';
 const DYNAMIC_CACHE = 'app-dynamic';
 const ALL_CACHES = [
 	STATIC_CACHE,
@@ -75,7 +75,7 @@ self.addEventListener('fetch', event => {
 				})
 				// error handler borrowed from Doug Brown presentation
 				.catch(error => {
-					if(event.request.url.indexOf('.jpg') > -1) {
+					if(event.request.url.indexOf('/img/') > -1) {
 						return caches.match('/img/empty-plate.jpg');
 					}
 					return new Response('Internet connection failed', {
