@@ -1,5 +1,5 @@
-// TODO: append hash version number to STATIC_CACHE and static files to cache
-const STATIC_CACHE = 'app-static-v11';
+// TODO: append hash version number to STATIC_CACHE and static files to cache 
+const STATIC_CACHE = 'app-static-v14';
 const DYNAMIC_CACHE = 'app-dynamic';
 const ALL_CACHES = [
 	STATIC_CACHE,
@@ -16,6 +16,7 @@ self.addEventListener('install', event => {
 				'/manifest.json',
 				'/css/styles.css',
 				'/img/empty-plate.jpg',
+				'/img/icons/fav-heart-sprite.png',
 				'/js/dbhelper.js',
 				'/js/idb.js',
 				'/js/main.js',
@@ -55,10 +56,18 @@ self.addEventListener('fetch', event => {
 			event.respondWith(caches.match('restaurant.html'));
 			return;
 		}
-		// Intercept fetch API calls for restaurant data  
-		if (requestURL.port === '1337') {
-			return;
-		}
+	// Intercept fetch API calls for restaurant data  
+	} else if (requestURL.port === '1337') {
+		return;
+		// TODO: PUT and POST should pass through
+		// if (event.request.method !== GET) {
+		// 	return;
+		// } else {
+		// 	event.respondWith(someCacheFunction);
+		// 	event.waitUntil(someFetchFunction().then(refresh));
+		// }
+		// TODO: GET requests should try and use idb cache
+		// GET requests should respond with idb cache data then get fresh data, recache and refresh
 	}
 
 	event.respondWith(

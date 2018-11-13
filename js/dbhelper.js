@@ -4,24 +4,19 @@
 
 const DATABASE_NAME = 'restarauntsDB';
 const RESTAURANT_STORE = 'restaurants';
+const REVIEW_STORE = 'reviews';
+const OFFLINE_STORE = 'offline';
 
-const handleFetchErrors = (fetchResponse) => {
-  if(!fetchResponse.ok) {
-    console.log(fetchResponse.statusText);
-  }
-  return fetchResponse;
-};
-
-const getAllRestaurants = () => {
-  return fetch(DBHelper.DATABASE_URL)
-    .then(handleFetchErrors)
-    .then(response => response.json())
-    .then(arrayOfRestuarants => {
-      return arrayOfRestuarants;
-    }).catch( error => {
-      console.log(error);
-    });
-}
+// const getAllRestaurants = () => {
+//   return fetch(DBHelper.DATABASE_URL)
+//     .then(handleFetchErrors)
+//     .then(response => response.json())
+//     .then(arrayOfRestuarants => {
+//       return arrayOfRestuarants;
+//     }).catch( error => {
+//       console.log(error);
+//     });
+// }
 
 class DBHelper {
   /**
@@ -56,34 +51,110 @@ class DBHelper {
       switch(updateDB.oldVersion) {
         case 0:
           updateDB.createObjectStore(DBHelper.RESTAURANT_STORE, { 
-            keyPath: 'id' 
+            keyPath: 'id',
+            unique: true
           });
+        // TODO create index for RESTAURANT_STORE on is_favorite
+        // case 1:
+        // var restaurantStore = upgradeDB.transaction.objectStore(DBHelper.RESTAURANT_STORE);
+        // restaurantStore.createIndex('favoriteRestaurants', 'is_favorite');
+        // case 2:
+        //   const reviewStore = upgradeDB.createObjectStore('reviews', {
+        //     autoIncrement: true 
+        //   });
+        //   reviewStore.createIndex('restaurant_id', 'restaurant_id');
+        // case 3:
+        //   upgradeDB.createObjectStore('offline', { autoIncrement: true });
       }
     });
   }
 
   /**
+   * Access all indexDB methods for local db CRUD
+   * @return {[type]} [description]
+   */
+  static indexDB() {
+    return {
+      get(store, key) {
+        return DBHelper.openDatabase().then(db => {
+          return db
+            .transaction(store)
+            .objectStore(store)
+            .get(key);
+        });
+      },
+      getAll(store) {
+        return DBHelper.openDatabase().then(db => {
+          return db
+            .transaction(store)
+            .objectStore(store)
+            .getAll();
+        });
+      },
+      getAllIdx(store, idx, key) {
+        return DBHelper.openDatabase().then(db => {
+          return db
+            .transaction(store)
+            .objectStore(store)
+            .index(idx)
+            .getAll(key);
+        });
+      },
+      set(store, val) {
+        return DBHelper.openDatabase().then(db => {
+          const tx = db.transaction(store, 'readwrite');
+          tx.objectStore(store).put(val);
+          return tx.complete;
+        });
+      },
+      setReturnId(store, val) {
+        return DBHelper.openDatabase().then(db => {
+          const tx = db.transaction(store, 'readwrite');
+          const pk = tx
+            .objectStore(store)
+            .put(val);
+          tx.complete;
+          return pk;
+        });
+      },
+      delete(store, key) {
+        return DBHelper.openDatabase().then(db => {
+          const tx = db.transaction(store, 'readwrite');
+          tx.objectStore(store).delete(key);
+          return tx.complete;
+        });
+      },
+      openCursor(store) {
+        return DBHelper.openDatabase().then(db => {
+          return db.transaction(store, 'readwrite')
+            .objectStore(store)
+            .openCursor();
+        });
+      }
+    }
+  };
+
+  /**
    * Retrieve all restaurants from cache
    */
   static getCachedRestaurants() {
-    return DBHelper.openDatabase().then(db => {
-      if (!db) return;
-      const restaurants = db.transaction(DBHelper.RESTAURANT_STORE)
-        .objectStore(DBHelper.RESTAURANT_STORE);
-      return restaurants.getAll();
-    });
+    return DBHelper.indexDB().getAll(DBHelper.RESTAURANT_STORE);
+    // return DBHelper.openDatabase().then(db => {
+    //   if (!db) return;
+    //   const restaurants = db.transaction(DBHelper.RESTAURANT_STORE)
+    //     .objectStore(DBHelper.RESTAURANT_STORE);
+    //   return restaurants.getAll();
+    // });
   }
 
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {    
-    // TODO: Currently this request gets all restaurants. May need to account for single restaurant w/ ID
     // Get offline data first then remote and update database
     
     const restaurantData = DBHelper.getCachedRestaurants().then(restaurantsCache => {
       return (restaurantsCache.length && restaurantsCache) || fetch(DBHelper.DATABASE_URL)
-        .then(handleFetchErrors)
         .then(fetchResponse => fetchResponse.json())
         .then(arrayOfRestuarants => {
           return DBHelper.openDatabase().then(db => {
@@ -293,6 +364,32 @@ class DBHelper {
       marker.addTo(newMap);
     return marker;
   } 
+
+  /**
+   * Restaurant Favorites
+   */
+  static updateFavoriteRestaurant(restaurant, isfav) {
+    const id = restaurant.id;
+    fetch(`${DBHelper.DATABASE_URL}${id}/?is_favorite=${isfav}`, {
+      method: 'PUT'
+    })
+    .then(fetchResponse => fetchResponse.json())
+    .then(restaurant => {
+      return DBHelper.indexDB().set(DBHelper.RESTAURANT_STORE, restaurant)
+    }).catch(err => console.log(`Remote Request failed. Returned status of ${err.statusText}`));
+  }
+
+  /**
+   * Helper Functions
+   */
+
+  static handleFetchErrors(fetchResponse) {
+    if(!fetchResponse.ok) {
+      console.log(fetchResponse.statusText);
+    }
+    return fetchResponse;
+  };
+
   /* static mapMarkerForRestaurant(restaurant, map) {
     const marker = new google.maps.Marker({
       position: restaurant.latlng,

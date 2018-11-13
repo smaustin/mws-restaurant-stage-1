@@ -176,6 +176,26 @@ createRestaurantHTML = (restaurant) => {
   name.innerHTML = restaurant.name;
   div.append(name);
 
+  const fav = document.createElement('button');
+  fav.className = 'fav-icon';
+  fav.setAttribute('aria-label', 'favorite');
+  if (restaurant.is_favorite === 'true') {
+    fav.classList.add('isfav');
+    fav.title = `Add ${restaurant.name} to favorites list`;
+  } else {
+    fav.title = `Remove ${restaurant.name} from favorites list`;
+  }
+  fav.addEventListener('click', (event) => {
+    event.preventDefault();
+    if (fav.classList.contains('isfav')) {
+      DBHelper.updateFavoriteRestaurant(restaurant, 'false');
+    } else {
+      DBHelper.updateFavoriteRestaurant(restaurant, 'true');
+    }
+    fav.classList.toggle('isfav');
+  });
+  div.append(fav);
+
   const neighborhood = document.createElement('p');
   neighborhood.innerHTML = restaurant.neighborhood;
   div.append(neighborhood);
