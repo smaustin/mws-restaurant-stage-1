@@ -139,12 +139,6 @@ class DBHelper {
    */
   static getCachedRestaurants() {
     return DBHelper.indexDB().getAll(DBHelper.RESTAURANT_STORE);
-    // return DBHelper.openDatabase().then(db => {
-    //   if (!db) return;
-    //   const restaurants = db.transaction(DBHelper.RESTAURANT_STORE)
-    //     .objectStore(DBHelper.RESTAURANT_STORE);
-    //   return restaurants.getAll();
-    // });
   }
 
   /**
@@ -157,73 +151,16 @@ class DBHelper {
       return (restaurantsCache.length && restaurantsCache) || fetch(DBHelper.DATABASE_URL)
         .then(fetchResponse => fetchResponse.json())
         .then(arrayOfRestuarants => {
-          return DBHelper.openDatabase().then(db => {
-            const tx = db.transaction(DBHelper.RESTAURANT_STORE, 'readwrite');
-            const store = tx.objectStore(DBHelper.RESTAURANT_STORE);
             arrayOfRestuarants.forEach(restaurant => {
-              store.put(restaurant);
-            })
+              DBHelper.indexDB().set(DBHelper.RESTAURANT_STORE, restaurant);
+            });
             return arrayOfRestuarants;
-          });
         }).catch(err => callback(`Remote Request failed. Returned status of ${err.statusText}`, null));
     });
 
     restaurantData.then(finalData => {
       callback(null, finalData);
     }).catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null));
-    // const cachedData = DBHelper.getCachedRestaurants();
-    // if (cachedData) {
-    //   callback(null, cachedData);
-    //   console.log('Data from db');
-    // }
-    
-    // DBHelper.openDatabase().then(db => {
-    //   if (!db) return;
-    //   const restaurants = db.transaction(DBHelper.RESTAURANT_STORE)
-    //     .objectStore(DBHelper.RESTAURANT_STORE);
-    //   return restaurants.getAll().then(restaurantsCache => {
-    //     if (!restaurantsCache.length) return;
-    //     callback(null, restaurantsCache);
-    //     console.log('Data from db');
-    //   });
-    // });
-
-    // .then(data => callback(null, data)) //TODO need to handle fetch event here
-    // .catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null));
-
-    // const fetchData = getAllRestaurants();
-    // if (fetchData) console.log(fetchData);
-    
-    // fetch(DBHelper.DATABASE_URL)
-    //   .then(handleFetchErrors)
-    //   .then(response => response.json())
-    //   .then(arrayOfRestuarants => {
-    //     callback(null, arrayOfRestuarants);
-    //     DBHelper.openDatabase().then(db => {
-    //       const tx = db.transaction(DBHelper.RESTAURANT_STORE, 'readwrite');
-    //       const store = tx.objectStore(DBHelper.RESTAURANT_STORE);
-    //       arrayOfRestuarants.forEach(restaurant => {
-    //         store.put(restaurant);
-    //       })
-    //       return tx.complete;
-    //     });
-    //   }).catch( error => {
-    //     console.log(error);
-    //   })
-
-      //callback(null, fetchData);
-      // .then(jsonData => callback(null, jsonData.clone()))
-      // .then(DBHelper.openDatabase()
-      //   .then(db => {
-      //     const tx = db.transaction(DBHelper.RESTAURANT_STORE, 'readwrite');
-      //     const store = tx.objectStore(DBHelper.RESTAURANT_STORE);
-      //     jsonData.forEach(restaurant => {
-      //       store.put(restaurant);
-      //     })
-      //     return tx.complete;
-      //   })
-      // )
-      // .catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null));
   }
 
   /**
