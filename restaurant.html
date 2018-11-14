@@ -51,6 +51,30 @@
     <!-- end restaurant -->
     <!-- Beginning reviews -->
     <section id="reviews-container">
+      <div id="review-form-container">
+        <h3 id="add-review-header">Add Review</h3>
+        <form id="review-form">
+          <div>
+            <label for="reviewerName">Name</label>
+            <input type="text" name="reviewerName" id="reviewerName" required aria-required="true" pattern="[A-Za-z-'0-9]+" title="firstname lastname">
+          </div>
+          <div>
+            <label for="selectRating">Rating</label>
+            <select id="selectRating">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div>
+            <label for="reviewComment">Comments</label>
+            <textarea name="reviewComment" id="reviewComment" cols="20" rows="5" required aria-required="true"></textarea>
+          </div>
+          <button id="submit-review">Save Review</button>
+        </form>
+      </div>
       <ul id="reviews-list"></ul>
     </section>
     <!-- End reviews -->

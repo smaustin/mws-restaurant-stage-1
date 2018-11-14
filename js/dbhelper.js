@@ -30,12 +30,15 @@ class DBHelper {
     return RESTAURANT_STORE;
   }
 
+  static get REVIEW_STORE() {
+    return REVIEW_STORE;
+  }
   /**
    * Remote Database URL.
    */
   static get DATABASE_URL() {
     const port = 1337 // Change this to your server port
-    return `http://localhost:${port}/restaurants/`;
+    return `http://localhost:${port}`;
   }
 
   /**
@@ -47,22 +50,20 @@ class DBHelper {
     if (!navigator.serviceWorker) {
       return Promise.resolve();
     }
-    return idb.open(DBHelper.DATABASE_NAME, 1, updateDB => {
+    return idb.open(DBHelper.DATABASE_NAME, 3, updateDB => {
       switch(updateDB.oldVersion) {
         case 0:
           updateDB.createObjectStore(DBHelper.RESTAURANT_STORE, { 
-            keyPath: 'id',
-            unique: true
+            keyPath: 'id'
           });
-        // TODO create index for RESTAURANT_STORE on is_favorite
-        // case 1:
-        // var restaurantStore = upgradeDB.transaction.objectStore(DBHelper.RESTAURANT_STORE);
-        // restaurantStore.createIndex('favoriteRestaurants', 'is_favorite');
-        // case 2:
-        //   const reviewStore = upgradeDB.createObjectStore('reviews', {
-        //     autoIncrement: true 
-        //   });
-        //   reviewStore.createIndex('restaurant_id', 'restaurant_id');
+        case 1:
+          const restaurantStore = updateDB.transaction.objectStore(DBHelper.RESTAURANT_STORE);
+          restaurantStore.createIndex('favorites', 'is_favorite');
+        case 2:
+          const reviewsStore = updateDB.createObjectStore(DBHelper.REVIEW_STORE, {
+            autoIncrement: true 
+          });
+          reviewsStore.createIndex('restaurant_id', 'restaurant_id');
         // case 3:
         //   upgradeDB.createObjectStore('offline', { autoIncrement: true });
       }
@@ -70,10 +71,11 @@ class DBHelper {
   }
 
   /**
-   * Access all indexDB methods for local db CRUD
-   * @return {[type]} [description]
+   * Access all indexedDB methods for local db CRUDish operations
+   * Based on https://github.com/jakearchibald/idb
+   * Modified based on James Priest comments
    */
-  static indexDB() {
+  static indexedDB() {
     return {
       get(store, key) {
         return DBHelper.openDatabase().then(db => {
@@ -91,7 +93,7 @@ class DBHelper {
             .getAll();
         });
       },
-      getAllIdx(store, idx, key) {
+      getAllIdx(store, idx, key) { // Get all results from index (eg favorites)
         return DBHelper.openDatabase().then(db => {
           return db
             .transaction(store)
@@ -110,9 +112,7 @@ class DBHelper {
       setReturnId(store, val) {
         return DBHelper.openDatabase().then(db => {
           const tx = db.transaction(store, 'readwrite');
-          const pk = tx
-            .objectStore(store)
-            .put(val);
+          const pk = tx.objectStore(store).put(val);
           tx.complete;
           return pk;
         });
@@ -135,24 +135,24 @@ class DBHelper {
   };
 
   /**
-   * Retrieve all restaurants from cache
+   * Retrieve all restaurants from cache.
    */
   static getCachedRestaurants() {
-    return DBHelper.indexDB().getAll(DBHelper.RESTAURANT_STORE);
+    return DBHelper.indexedDB().getAll(DBHelper.RESTAURANT_STORE);
   }
 
   /**
    * Fetch all restaurants.
+   * Primary request for restaurant data - get data from local storage, fall back to fetch
    */
   static fetchRestaurants(callback) {    
-    // Get offline data first then remote and update database
-    
+        
     const restaurantData = DBHelper.getCachedRestaurants().then(restaurantsCache => {
-      return (restaurantsCache.length && restaurantsCache) || fetch(DBHelper.DATABASE_URL)
+      return (restaurantsCache.length && restaurantsCache) || fetch(`${DBHelper.DATABASE_URL}/restaurants/`)
         .then(fetchResponse => fetchResponse.json())
         .then(arrayOfRestuarants => {
             arrayOfRestuarants.forEach(restaurant => {
-              DBHelper.indexDB().set(DBHelper.RESTAURANT_STORE, restaurant);
+              DBHelper.indexedDB().set(DBHelper.RESTAURANT_STORE, restaurant);
             });
             return arrayOfRestuarants;
         }).catch(err => callback(`Remote Request failed. Returned status of ${err.statusText}`, null));
@@ -304,18 +304,63 @@ class DBHelper {
 
   /**
    * Restaurant Favorites
+   * Update Remote and Local Storage
    */
   static updateFavoriteRestaurant(restaurant, isfav) {
     const id = restaurant.id;
-    fetch(`${DBHelper.DATABASE_URL}${id}/?is_favorite=${isfav}`, {
+    fetch(`${DBHelper.DATABASE_URL}/restaurants/${id}/?is_favorite=${isfav}`, {
       method: 'PUT'
     })
     .then(fetchResponse => fetchResponse.json())
     .then(restaurant => {
-      return DBHelper.indexDB().set(DBHelper.RESTAURANT_STORE, restaurant)
+      return DBHelper.indexedDB().set(DBHelper.RESTAURANT_STORE, restaurant)
     }).catch(err => console.log(`Remote Request failed. Returned status of ${err.statusText}`));
   }
 
+  /**
+   * Get All Restaurant Reviews 
+   */
+  static fetchReviewsByRestaurant(restaurant, callback) {
+    const id = restaurant.id;
+    const reviewData = DBHelper.indexedDB().getAllIdx(DBHelper.REVIEW_STORE, 'restaurant_id', id).then(reviewsCache => {
+      return (reviewsCache.length && reviewsCache) ||fetch(`${DBHelper.DATABASE_URL}/reviews/?restaurant_id=${id}`)
+      .then(fetchResponse => fetchResponse.json())
+      .then(arrayOfReviews => {
+          arrayOfReviews.forEach(review => {
+            DBHelper.indexedDB().set(DBHelper.REVIEW_STORE, review);
+          });
+          return arrayOfReviews;
+        }).catch(err => callback(`Remote Request failed. Returned status of ${err.statusText}`, null));
+    });
+
+    reviewData.then(finalData => {
+      callback(null, finalData);
+    }).catch(err => callback(`Request failed. Returned status of ${err.statusText}`, null));
+  }
+
+  static addRestaurantReview(restaurant_id, name, rating, comment_text, callback) {
+    const body = {
+      restaurant_id: restaurant_id,
+      name: name,
+      rating: rating,
+      comments: comment_text
+    };
+    fetch(`${DBHelper.DATABASE_URL}/reviews/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    })
+    .then(fetchResponse => fetchResponse.json())
+    .then(response => callback(null, response))
+    .catch(error => {
+      // Add to indexedDB for offline use
+      DBHelper.indexedDB().setReturnId(DBHelper.REVIEW_STORE, body)
+        .then(reviewID => console.log(reviewID));
+        // TODO add to PendingReviews IDB
+      callback(error, null);
+    });
+  }
+  
   /**
    * Helper Functions
    */

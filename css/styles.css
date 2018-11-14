@@ -285,12 +285,16 @@ nav h1 a {
 #reviews-container {
   /*padding: 30px 40px 80px;*/
 }
-#reviews-container h2 {
+#reviews-container h2, 
+#reviews-container h3 {
   color: #f58500;
   font-size: 1.5rem;
   font-weight: 300;
   letter-spacing: -1px;
   padding-bottom: 1pt;
+}
+#reviews-container h3 {
+  font-size: 1rem;
 }
 #reviews-list {
   margin: 0;
@@ -310,6 +314,57 @@ nav h1 a {
   margin: 0 0 10px;
 }
 
+#review-form-container {
+  padding: 0 20px;
+}
+#review-form-container * {
+  box-sizing: border-box;
+}
+#review-form-container form > div {
+  margin-bottom: 15px;
+}
+#review-form-container form > div > label {
+  width: 100%;
+}
+#review-form-container input[type=text], 
+#review-form-container select,
+#review-form-container textarea {
+  font-size: 1rem;
+  border-radius: 0;
+  height: 35px;
+  background-color: white;
+  padding: 13px;
+  margin-bottom: 10px;
+  width:100%;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -ms-box-sizing: border-box;
+  box-sizing: border-box;
+  border: 1px solid #444444;
+}
+#review-form-container textarea {
+  height: 70px;
+}
+#review-form-container input[type=text]:focus, 
+#review-form-container select:focus,
+#review-form-container textarea:focus {
+  background: #fff;
+  box-shadow: 0;
+  border: 1px solid orange;
+  outline: none;
+}
+#review-form-container button {
+  background-color: orange;
+  border-bottom: 3px solid #eee;
+  color: #fff;
+  cursor: pointer;
+  font-size: 10pt;
+  margin: 0 0 15px 15px;
+  padding: 8px 30px 10px;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+}
 /* ====================== Media Queries ====================== */
 /* Extra small devices (portrait phones, less than 576px)
     No media query since this is the default

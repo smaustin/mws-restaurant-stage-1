@@ -88,7 +88,13 @@ fillRestaurantHTML = (restaurant = self.restaurant) => {
     fillRestaurantHoursHTML();
   }
   // fill reviews
-  fillReviewsHTML();
+  DBHelper.fetchReviewsByRestaurant(restaurant, (error, reviews) => {
+    self.reviews = reviews;
+    if (error) {
+      console.error(error);
+    }
+    fillReviewsHTML();
+  });
 }
 
 /**
@@ -114,11 +120,15 @@ fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => 
 /**
  * Create all reviews HTML and add them to the webpage.
  */
-fillReviewsHTML = (reviews = self.restaurant.reviews) => {
+fillReviewsHTML = (reviews = self.reviews) => {
   const container = document.getElementById('reviews-container');
+  const formContainer = document.getElementById('review-form-container');
+  const reviewForm = document.getElementById('review-form');
+  // TODO: add listener on form elements to enable/disable submit
+  reviewForm.addEventListener('submit', processForm, false);
   const title = document.createElement('h2');
   title.innerHTML = 'Reviews';
-  container.appendChild(title);
+  container.insertBefore(title, formContainer);
 
   if (!reviews) {
     const noReviews = document.createElement('p');
@@ -126,16 +136,23 @@ fillReviewsHTML = (reviews = self.restaurant.reviews) => {
     container.appendChild(noReviews);
     return;
   }
-  const ul = document.getElementById('reviews-list');
-  reviews.forEach(review => {
-    ul.appendChild(createReviewHTML(review));
-  });
-  container.appendChild(ul);
+  
+  container.appendChild(createReviewsHTML());
 }
 
 /**
  * Create review HTML and add it to the webpage.
  */
+createReviewsHTML = (reviews = self.reviews) => {
+  const ul = document.getElementById('reviews-list');
+  ul.innerHTML = '';
+  reviews.forEach(review => {
+    ul.appendChild(createReviewHTML(review));
+  });
+
+  return ul;
+}
+
 createReviewHTML = (review) => {
   const li = document.createElement('li');
   const name = document.createElement('p');
@@ -143,7 +160,8 @@ createReviewHTML = (review) => {
   li.appendChild(name);
 
   const date = document.createElement('p');
-  date.innerHTML = review.date;
+  const lastUpdated = (review.updatedAt > review.createdAt) ? review.updatedAt : review.createdAt;
+  date.innerHTML = new Date(lastUpdated).toLocaleDateString();
   li.appendChild(date);
 
   const rating = document.createElement('p');
@@ -186,4 +204,29 @@ getParameterByName = (name, url) => {
   if (!results[2])
     return '';
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+processForm = (event) => {
+  event.preventDefault();
+  const form = event.target;
+
+  const restaurant_id = self.restaurant.id;
+  const name = document.getElementById('reviewerName').value;
+  const rating = document.getElementById('selectRating').value;
+  const comment_text = document.getElementById('reviewComment').value;
+
+  DBHelper.addRestaurantReview(restaurant_id, name, rating, comment_text, (error, review) => {
+      if (error) {
+        console.error(error);
+      } else {
+        DBHelper.indexedDB().set(DBHelper.REVIEW_STORE, review);
+      }
+      // Reset form and refresh review display
+      form.reset();
+      DBHelper.indexedDB().getAllIdx(DBHelper.REVIEW_STORE, 'restaurant_id', restaurant_id)
+        .then(reviewsCache => {
+          self.reviews = reviewsCache;
+          createReviewsHTML();
+      });
+  });
 }

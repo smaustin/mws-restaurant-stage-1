@@ -176,9 +176,9 @@ createRestaurantHTML = (restaurant) => {
   fav.addEventListener('click', (event) => {
     event.preventDefault();
     if (fav.classList.contains('isfav')) {
-      DBHelper.updateFavoriteRestaurant(restaurant, 'false');
+      DBHelper.updateFavoriteRestaurant(restaurant, false);
     } else {
-      DBHelper.updateFavoriteRestaurant(restaurant, 'true');
+      DBHelper.updateFavoriteRestaurant(restaurant, true);
     }
     fav.classList.toggle('isfav');
   });
