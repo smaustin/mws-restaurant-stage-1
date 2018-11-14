@@ -219,6 +219,7 @@ processForm = (event) => {
       if (error) {
         console.error(error);
       } else {
+        // POST to remote DB worked so add review to indexedDB
         DBHelper.indexedDB().set(DBHelper.REVIEW_STORE, review);
       }
       // Reset form and refresh review display

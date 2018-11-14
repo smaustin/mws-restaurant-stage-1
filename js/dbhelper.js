@@ -5,18 +5,7 @@
 const DATABASE_NAME = 'restarauntsDB';
 const RESTAURANT_STORE = 'restaurants';
 const REVIEW_STORE = 'reviews';
-const OFFLINE_STORE = 'offline';
-
-// const getAllRestaurants = () => {
-//   return fetch(DBHelper.DATABASE_URL)
-//     .then(handleFetchErrors)
-//     .then(response => response.json())
-//     .then(arrayOfRestuarants => {
-//       return arrayOfRestuarants;
-//     }).catch( error => {
-//       console.log(error);
-//     });
-// }
+const PENDING_STORE = 'pending';
 
 class DBHelper {
   /**
@@ -32,6 +21,10 @@ class DBHelper {
 
   static get REVIEW_STORE() {
     return REVIEW_STORE;
+  }
+
+  static get PENDING_STORE() {
+    return PENDING_STORE
   }
   /**
    * Remote Database URL.
@@ -50,7 +43,7 @@ class DBHelper {
     if (!navigator.serviceWorker) {
       return Promise.resolve();
     }
-    return idb.open(DBHelper.DATABASE_NAME, 3, updateDB => {
+    return idb.open(DBHelper.DATABASE_NAME, 4, updateDB => {
       switch(updateDB.oldVersion) {
         case 0:
           updateDB.createObjectStore(DBHelper.RESTAURANT_STORE, { 
@@ -61,11 +54,14 @@ class DBHelper {
           restaurantStore.createIndex('favorites', 'is_favorite');
         case 2:
           const reviewsStore = updateDB.createObjectStore(DBHelper.REVIEW_STORE, {
-            autoIncrement: true 
+            keyPath: 'id' 
           });
           reviewsStore.createIndex('restaurant_id', 'restaurant_id');
-        // case 3:
-        //   upgradeDB.createObjectStore('offline', { autoIncrement: true });
+        case 3:
+          updateDB.createObjectStore(DBHelper.PENDING_STORE, { 
+            autoIncrement: true,
+            keyPath: 'id'
+          });
       }
     });
   }
@@ -353,14 +349,36 @@ class DBHelper {
     .then(fetchResponse => fetchResponse.json())
     .then(response => callback(null, response))
     .catch(error => {
-      // Add to indexedDB for offline use
+      // Remote fetch failed add to indexedDB for offline use
       DBHelper.indexedDB().setReturnId(DBHelper.REVIEW_STORE, body)
         .then(reviewID => console.log(reviewID));
-        // TODO add to PendingReviews IDB
+        // TODO Add to PendingRequests IDB
+        // TODO: Notify client they are offline
       callback(error, null);
     });
   }
+
+  // TODO: Add request to pending and process pending
+  static addRequestToPending(url, method, headers, body) {
+    // Add request to Pending
+    const request = {
+      url: url,
+      method: method,
+      headers: headers,
+      body: body
+    }
+    DBHelper.indexedDB().set(DBHelper.RESTAURANT_STORE, restaurant);
+    // On success attempt to process Pending 
+  }
   
+  static processPending() {
+    // Get a cursor of all pending requests
+    // Loop through cursor
+    // POST current cursor to remote DB
+    // On success delete current cursor from pending
+    // Update/AddRemove existing review from indexedDB
+    // Process next cursor
+  }
   /**
    * Helper Functions
    */
