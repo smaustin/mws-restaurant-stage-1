@@ -56,11 +56,11 @@
         <form id="review-form">
           <div>
             <label for="reviewerName">Name</label>
-            <input type="text" name="reviewerName" id="reviewerName" required aria-required="true" pattern="[A-Za-z-'0-9]+" title="firstname lastname">
+            <input type="text" name="reviewerName" id="reviewerName" required aria-required="true" pattern="^(\w\w+)\s(\w+)$" title="firstname lastname">
           </div>
           <div>
             <label for="selectRating">Rating</label>
-            <select id="selectRating">
+            <select id="selectRating" aria-label="Rating select">
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>

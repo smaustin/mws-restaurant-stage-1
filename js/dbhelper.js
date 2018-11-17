@@ -54,13 +54,12 @@ class DBHelper {
           restaurantStore.createIndex('favorites', 'is_favorite');
         case 2:
           const reviewsStore = updateDB.createObjectStore(DBHelper.REVIEW_STORE, {
-            keyPath: 'id' 
+            autoIncrement: true 
           });
           reviewsStore.createIndex('restaurant_id', 'restaurant_id');
         case 3:
           updateDB.createObjectStore(DBHelper.PENDING_STORE, { 
-            autoIncrement: true,
-            keyPath: 'id'
+            autoIncrement: true
           });
       }
     });
@@ -319,14 +318,14 @@ class DBHelper {
   static fetchReviewsByRestaurant(restaurant, callback) {
     const id = restaurant.id;
     const reviewData = DBHelper.indexedDB().getAllIdx(DBHelper.REVIEW_STORE, 'restaurant_id', id).then(reviewsCache => {
-      return (reviewsCache.length && reviewsCache) ||fetch(`${DBHelper.DATABASE_URL}/reviews/?restaurant_id=${id}`)
+      return (reviewsCache.length && reviewsCache) || fetch(`${DBHelper.DATABASE_URL}/reviews/?restaurant_id=${id}`)
       .then(fetchResponse => fetchResponse.json())
       .then(arrayOfReviews => {
-          arrayOfReviews.forEach(review => {
-            DBHelper.indexedDB().set(DBHelper.REVIEW_STORE, review);
-          });
-          return arrayOfReviews;
-        }).catch(err => callback(`Remote Request failed. Returned status of ${err.statusText}`, null));
+        arrayOfReviews.forEach(review => {
+          DBHelper.indexedDB().set(DBHelper.REVIEW_STORE, review);
+        });
+        return arrayOfReviews;
+      }).catch(err => callback(`Remote Request failed. Returned status of ${err.statusText}`, null));
     });
 
     reviewData.then(finalData => {
@@ -341,9 +340,17 @@ class DBHelper {
       rating: rating,
       comments: comment_text
     };
-    fetch(`${DBHelper.DATABASE_URL}/reviews/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json'},
+    const url = `${DBHelper.DATABASE_URL}/reviews/`;
+    const method = 'POST';
+    const headers = { 'Content-Type': 'application/json'}
+    // TODO May want to check for online/offline here
+    // if (!navigator.onLine) {
+    // DBHelper.addRequestToPending();
+    // return;
+    // }
+    fetch(url, {
+      method: method,
+      headers: headers,
       body: JSON.stringify(body)
     })
     .then(fetchResponse => fetchResponse.json())
@@ -351,34 +358,118 @@ class DBHelper {
     .catch(error => {
       // Remote fetch failed add to indexedDB for offline use
       DBHelper.indexedDB().setReturnId(DBHelper.REVIEW_STORE, body)
-        .then(reviewID => console.log(reviewID));
-        // TODO Add to PendingRequests IDB
-        // TODO: Notify client they are offline
+      .then(reviewID => {
+      // Add to PendingRequests IDB
+        DBHelper.addRequestToPending(url, method, headers, body, reviewID)
+        .then(() => DBHelper.processPending());
+      })
+      .catch(error => console.log(error));
       callback(error, null);
     });
   }
 
-  // TODO: Add request to pending and process pending
-  static addRequestToPending(url, method, headers, body) {
+  static addRequestToPending(url, method, headers, body, reviewID = 0) {
     // Add request to Pending
     const request = {
       url: url,
       method: method,
       headers: headers,
-      body: body
+      body: body,
+      reviewID: reviewID
     }
-    DBHelper.indexedDB().set(DBHelper.RESTAURANT_STORE, restaurant);
-    // On success attempt to process Pending 
+    return DBHelper.indexedDB().set(DBHelper.PENDING_STORE, request)
+    .then(complete => {
+      // Add event listener to wait in background until user online
+      window.addEventListener('online', (event) => {
+        DBHelper.processPending();        
+      });
+      console.log(`Request added to ${DBHelper.PENDING_STORE}`);
+      return;
+    });
   }
   
   static processPending() {
+    // TODO This function does too much processing - Refactor
+    if (!navigator.onLine) {
+      return;
+    }
+    const arrayOfPendingData = [];
     // Get a cursor of all pending requests
-    // Loop through cursor
-    // POST current cursor to remote DB
-    // On success delete current cursor from pending
-    // Update/AddRemove existing review from indexedDB
-    // Process next cursor
+    DBHelper.indexedDB().openCursor(DBHelper.PENDING_STORE)
+    // Loop through cursor and create data object
+    .then(function nextPending(cursor) {
+      if (!cursor) {
+        console.log(`Done cursoring ${DBHelper.PENDING_STORE}`);
+        return;
+      }
+      // append cursor to data object
+      arrayOfPendingData.push(cursor.value);
+      console.log(`Added ${cursor.value.body.name} to pendingData`);
+      cursor.delete();
+      console.log('Removed old record from pending indexedDB');
+      // Process next cursor
+      return cursor.continue().then(nextPending);
+    })
+    .then(() => {
+      if (!arrayOfPendingData.length) {
+        console.log('No data pending');
+        return;
+      }
+      const arrayOfPromises = arrayOfPendingData.map(pendingObject => {
+        // POST current pendingObject to remote DB
+        return fetch(pendingObject.url, {
+          method: pendingObject.method,
+          headers: pendingObject.headers,
+          body: JSON.stringify(pendingObject.body)
+        })
+        .then(fetchResponse => fetchResponse.json())
+        .then(response => {
+          console.log('Updated pending record on remote DB');
+          // On success update existing indexedDB entry
+          if (pendingObject.url.endsWith('reviews/')) {
+            return DBHelper.indexedDB().set(DBHelper.REVIEW_STORE, response)
+            .then(complete => {
+              console.log('Placed updated review into indexedDB');
+              return DBHelper.indexedDB().delete(DBHelper.REVIEW_STORE, pendingObject.reviewID)
+              .then(complete => {
+                console.log('Removed old record from review indexedDB');
+                return 'Review Complete';
+              });
+            });
+          } else { // restuarant primary key is in response so this will update existing record
+            return DBHelper.indexedDB().set(DBHelper.RESTAURANT_STORE, response)
+            .then(complete => {
+              console.log('Update restaurant in indexedDB');
+              return 'Restaurant Complete';
+            });
+          }
+        }).catch(error => {
+          // No response must be offline again
+          return DBHelper.addRequestToPending(pendingObject.url, pendingObject.method, pendingObject.headers, pendingObject.body, pendingObject.reviewID)
+          .then(() => {
+            console.log(`Fetch request for pending ${pendingObject.body.name} failed. Added back to Pending`);
+            return `${pendingObject.body.name} Pending Again`;
+          });
+        });
+      });
+      return Promise.all(arrayOfPromises);
+    })
+    .then(arrayOfPromises => {
+      // Hack for index.html pending process
+      if (location.pathname.startsWith('/restaurant')) {
+        // TODO loop over arrayOfPromises to determine action
+        DBHelper.indexedDB().getAll(DBHelper.REVIEW_STORE)
+          .then(reviews => {
+            createReviewsHTML(reviews);
+            console.log('Updated review display');
+          });
+      }
+    }).catch(error => {
+      console.error(error);
+      return;
+    });  
   }
+
   /**
    * Helper Functions
    */

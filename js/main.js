@@ -14,6 +14,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
 });
 
 /**
+ * Check for Pending updates on inital load
+ */
+window.addEventListener('load', function () {
+  DBHelper.processPending();
+});
+
+/**
  * Fetch all neighborhoods and set their HTML.
  */
 fetchNeighborhoods = () => {

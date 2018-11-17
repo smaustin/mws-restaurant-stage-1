@@ -125,7 +125,7 @@ fillReviewsHTML = (reviews = self.reviews) => {
   const formContainer = document.getElementById('review-form-container');
   const reviewForm = document.getElementById('review-form');
   // TODO: add listener on form elements to enable/disable submit
-  reviewForm.addEventListener('submit', processForm, false);
+  reviewForm.addEventListener('submit', processReviewForm, false);
   const title = document.createElement('h2');
   title.innerHTML = 'Reviews';
   container.insertBefore(title, formContainer);
@@ -155,13 +155,21 @@ createReviewsHTML = (reviews = self.reviews) => {
 
 createReviewHTML = (review) => {
   const li = document.createElement('li');
+
+  if (!review.id) { //check for review id assigned by remote DB
+    const offlineNotice = document.createElement('p');
+    offlineNotice.className = 'review-offline';
+    offlineNotice.innerHTML = '<strong>OFFLINE</strong>';
+    li.appendChild(offlineNotice);
+  }
+
   const name = document.createElement('p');
   name.innerHTML = review.name;
   li.appendChild(name);
 
   const date = document.createElement('p');
   const lastUpdated = (review.updatedAt > review.createdAt) ? review.updatedAt : review.createdAt;
-  date.innerHTML = new Date(lastUpdated).toLocaleDateString();
+  date.innerHTML = lastUpdated ? new Date(lastUpdated).toLocaleDateString() : 'Pending';
   li.appendChild(date);
 
   const rating = document.createElement('p');
@@ -178,7 +186,7 @@ createReviewHTML = (review) => {
 /**
  * Add restaurant name to the breadcrumb navigation menu
  */
-fillBreadcrumb = (restaurant=self.restaurant) => {
+fillBreadcrumb = (restaurant = self.restaurant) => {
   const breadcrumb = document.getElementById('breadcrumb');
   const li = document.createElement('li');
   const a = document.createElement('a');
@@ -206,7 +214,7 @@ getParameterByName = (name, url) => {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-processForm = (event) => {
+processReviewForm = (event) => {
   event.preventDefault();
   const form = event.target;
 
@@ -214,6 +222,8 @@ processForm = (event) => {
   const name = document.getElementById('reviewerName').value;
   const rating = document.getElementById('selectRating').value;
   const comment_text = document.getElementById('reviewComment').value;
+
+  // TODO Form validation
 
   DBHelper.addRestaurantReview(restaurant_id, name, rating, comment_text, (error, review) => {
       if (error) {

@@ -313,6 +313,12 @@ nav h1 a {
 #reviews-list li p {
   margin: 0 0 10px;
 }
+#reviews-list li p.review-offline {
+  background-color: orange;
+  padding: 5px;
+  text-align: center;
+  text-transform: uppercase;
+}
 
 #review-form-container {
   padding: 0 20px;
