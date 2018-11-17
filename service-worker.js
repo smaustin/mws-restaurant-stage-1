@@ -97,6 +97,8 @@ self.addEventListener('fetch', event => {
 });
 
 function handleFetchErrors(fetchResponse) {
+	// TODO review the following - if(!response || response.status !== 200 || response.type !== 'basic')
+	// example here - https://developers.google.com/web/fundamentals/primers/service-workers/
 	if(!fetchResponse.ok) {
 		console.log(fetchResponse.statusText);
 	}
